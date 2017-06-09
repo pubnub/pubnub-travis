@@ -1,13 +1,20 @@
+# Template variable values for local Travis Enterprise build
 
-# replicated.conf.tpl vars
-admin_password: "password"
-fqdn: "travis.vagrant"
-log_level: debug
+# Github Settings
+github_client_id: "fake_client_id"
+github_client_secret: "fake_client_secret"
 
-# settings.json.tpl vars
-github_client_id: "test_client_id"
-github_client_secret: "test_client_secret"
-rabbitmq_password: "password"
+# Librato Settings
 librato_enabled: "yes"
 librato_email: "librato@example.com"
 librato_token: "librato_token"
+
+# Platform Information
+platform_admin_password: "password"
+platform_fqdn: "travis.vagrant"
+
+# Rabbit MQ Settings
+rabbitmq_password: "password"
+
+# Replicated Log Level
+replicated_log_level: debug

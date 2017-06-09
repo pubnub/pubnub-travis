@@ -2,19 +2,26 @@
 # Vagrantfile for Travis Enterprise
 
 unless Vagrant.has_plugin? "vagrant-triggers"
-    raise "Required plugin 'vagrant-triggers' not installed"
+    raise Vagrant::Errors::VagrantError.new, "Missing required plugin 'vagrant-triggers'"
 end
+
+WORKER_COUNT = ENV.has_key?("TRAVIS_WORKER_COUNT") ? ENV["TRAVIS_WORKER_COUNT"].to_i : 1
+TEMPLATE_VARS = YAML::load(File.open(File.join(File.expand_path(File.dirname(__FILE__)), "template_vars.yml")))
+PLATFORM_IP = "192.168.33.90"
 
 Vagrant.configure("2") do |config|
 
-    config.vm.define "platform" do |platform|
+    # Render templates
+    config.trigger.before :up do
+        run "scripts/render_templates.sh"
+    end
+
+    config.vm.define "travis-platform" do |platform|
         platform.vm.box = "travis-platform"
         platform.vm.hostname = "travis-platform"
         platform.ssh.keep_alive = true
 
-        platform_ip = "192.168.33.90"
-
-        platform.vm.network "private_network", ip: platform_ip
+        platform.vm.network "private_network", ip: PLATFORM_IP
 
         platform.vm.provider "virtualbox" do |vb|
             vb.name = "travis-platform"
@@ -24,14 +31,9 @@ Vagrant.configure("2") do |config|
 
         platform.vm.synced_folder ".", "/vagrant", disabled: true
 
-        # Render templates
-        platform.trigger.before :up do
-            run "scripts/render_templates.sh"
-        end
-
         # Upload required files to /tmp
         platform.vm.provision "file", source: "certs", destination: "/tmp/certs"
-        platform.vm.provision "file", source: "rendered", destination: "/tmp/rendered"
+        platform.vm.provision "file", source: "rendered/platform", destination: "/tmp/rendered"
 
         # Move required files to correct location
         platform.vm.provision "shell", inline: "mv /tmp/certs /opt/pubnub"
@@ -39,7 +41,39 @@ Vagrant.configure("2") do |config|
         platform.vm.provision "shell", inline: "mv /tmp/rendered/settings.json /opt/pubnub/travis-platform"
 
         # Run installation
-        platform_install_args = "no-proxy private-address=#{platform_ip} public-address=#{platform_ip}"
+        platform_install_args = "no-proxy private-address=#{PLATFORM_IP} public-address=#{PLATFORM_IP}"
         platform.vm.provision "shell", inline: "/opt/pubnub/travis-platform/installer.sh #{platform_install_args}"
+    end
+
+    (1..WORKER_COUNT).each do |worker_index|
+        config.vm.define "travis-worker#{worker_index}" do |worker|
+            worker.vm.box = "travis-worker"
+            worker.vm.hostname = "travis-worker#{worker_index}"
+            worker.ssh.keep_alive = true
+
+            worker_ip = "192.168.33.#{90 + worker_index}"
+
+            worker.vm.network "private_network", ip: worker_ip
+
+            worker.vm.provider "virtualbox" do |vb|
+                vb.name = "travis-worker#{worker_index}"
+                vb.memory = "1024"
+                vb.cpus = 4
+            end
+
+            worker.vm.synced_folder ".", "/vagrant", disabled: true
+
+            # Add platform ip -> host mapping to /etc/hosts
+            worker.vm.provision "shell", inline: "echo \'#{PLATFORM_IP} #{TEMPLATE_VARS["platform_fqdn"]}\' >> /etc/hosts"
+
+            # Upload required files to /tmp
+            worker.vm.provision "file", source: "rendered/worker", destination: "/tmp/rendered"
+
+            # Move required files to correct location
+            worker.vm.provision "shell", inline: "mv /tmp/rendered/travis-enterprise /etc/default"
+
+            # Restart worker service with updated /etc/defaults
+            worker.vm.provision "shell", inline: "restart travis-worker"
+        end
     end
 end

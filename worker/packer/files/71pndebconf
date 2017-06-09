@@ -1,0 +1,7 @@
+// Instruct dpkg to auto-prefer changed package conf files
+// This prevents a prompt for /etc/default/travis-enterprise during
+// apt install of travis-worker
+Dpkg::Options {
+    "--force-confdef";
+    "--force-confold";
+}

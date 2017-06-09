@@ -5,7 +5,6 @@ set -e
 BASE=$(cd $(dirname ${BASH_SOURCE[0]})/.. && pwd)
 
 OUT_DIR="$BASE/rendered"
-TEMPLATE_DIR="$BASE/platform/terraform/templates"
 VARS_FILE="$BASE/template_vars.yml"
 
 command -v hilrunner > /dev/null || {
@@ -13,8 +12,19 @@ command -v hilrunner > /dev/null || {
     exit 1
 }
 
-mkdir -p $OUT_DIR
+mkdir -p "$OUT_DIR/platform" "$OUT_DIR/worker"
 
-for name in 'replicated.conf' 'settings.json'; do
-    hilrunner -vars $VARS_FILE -out "$OUT_DIR/$name" "$TEMPLATE_DIR/$name.tpl"
-done
+render_platform() {
+    local template_dir="$BASE/platform/terraform/templates"
+    for name in "replicated.conf" "settings.json"; do
+        hilrunner -vars $VARS_FILE -out "$OUT_DIR/platform/$name" "$template_dir/$name.tpl"
+    done
+}
+
+render_worker() {
+    local template_dir="$BASE/worker/terraform/templates"
+    hilrunner -vars $VARS_FILE -out "$OUT_DIR/worker/travis-enterprise" "$template_dir/travis-enterprise.tpl"
+}
+
+render_platform
+render_worker
