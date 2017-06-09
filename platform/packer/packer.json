@@ -1,0 +1,62 @@
+{
+    "variables": {
+        "common_dir": "{{env `PACKER_COMMON`}}",
+        "role": "travis-platform",
+        "version": "{{timestamp}}"
+    },
+
+    "builders": [
+        {
+            "type": "virtualbox-vagrant",
+
+            "box": {
+                "type": "catalog",
+                "name": "ubuntu/trusty64",
+                "version": "20170512.0.0"
+            },
+
+            "ssh_username": "vagrant",
+            "ssh_password": "vagrant",
+
+            "http_directory": "{{template_dir}}/http",
+            "output_directory": "{{template_dir}}/output",
+
+            "shutdown_command": "echo vagrant | sudo -S shutdown -P now",
+
+            "boot_command": [
+                "<esc><esc><enter><wait>",
+                "/install/vmlinuz noapic ",
+                "preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg ",
+                "debian-installer=en_US auto locale=en_US kbd-chooser/method=us ",
+                "hostname=travis-platform ",
+                "fb=false debconf/frontend=noninteractive ",
+                "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=USA ",
+                "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
+                "initrd=/install/initrd.gz -- <enter>"
+            ]
+        }
+    ],
+
+    "provisioners": [
+        {
+            "type": "file",
+            "source": "{{template_dir}}/files",
+            "destination": "/tmp"
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo mkdir -p /opt/pubnub",
+                "sudo mv /tmp/files /opt/pubnub/travis-platform"
+            ]
+        }
+    ],
+
+    "post-processors": [
+        {
+            "type": "vagrant",
+            "keep_input_artifact": true,
+            "output": "{{template_dir}}/output/{{user `role`}}_{{.Provider}}_{{user `version`}}.box"
+        }
+    ]
+}

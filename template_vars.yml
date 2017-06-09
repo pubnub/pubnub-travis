@@ -1,0 +1,13 @@
+
+# replicated.conf.tpl vars
+admin_password: "password"
+fqdn: "travis.vagrant"
+log_level: debug
+
+# settings.json.tpl vars
+github_client_id: "test_client_id"
+github_client_secret: "test_client_secret"
+rabbitmq_password: "password"
+librato_enabled: "yes"
+librato_email: "librato@example.com"
+librato_token: "librato_token"

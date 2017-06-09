@@ -1,0 +1,9 @@
+## Vagrant
+.vagrant
+
+## Packer output
+output/
+packer_cache/
+
+## Hilrunner
+rendered/
