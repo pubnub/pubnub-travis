@@ -15,6 +15,10 @@ brew install hilrunner packer-builder-virtualbox-vagrant
 # OR if you use it
 brew bundle
 
+# Don't forget to run
+# /usr/local/opt/packer-builder-virtualbox-vagrant/activate.sh
+# to complete the installation
+
 make && make install
 vagrant up
 ```
