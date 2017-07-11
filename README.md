@@ -9,6 +9,16 @@ This repository contains the following for PubNub's Travis Enterprise codebase
 
 ## Local Development
 
+**Quick Start**
+```
+brew install hilrunner packer-builder-virtualbox-vagrant
+# OR if you use it
+brew bundle
+
+make && make install
+vagrant up
+```
+
 **Dependencies** (Installable via homebrew)
 - https://github.com/pubnub/packer-builder-virtualbox-vagrant
 - https://github.com/pubnub/hilrunner
@@ -48,6 +58,17 @@ vagrant up travis-platform
 
 # Worker(s)
 vagrant up travis-worker[#]
+```
+
+**Testing**
+
+Testing is currently limited to simple validation of packer and terraform configuration files
+```
+# Individually
+make [platform | worker].test
+
+# Both
+make test
 ```
 
 ## Deployment
