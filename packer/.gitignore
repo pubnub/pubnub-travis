@@ -1,0 +1,5 @@
+## Packer Output
+output/
+
+## Travis Liscence
+platform/files/*.rli

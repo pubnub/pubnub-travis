@@ -11,7 +11,7 @@
 
 set -e
 
-PINNED_DOCKER_VERSION="17.03.1-ce"
+PINNED_DOCKER_VERSION="17.03.1"
 MIN_DOCKER_VERSION="1.7.1"
 SKIP_DOCKER_INSTALL=0
 SKIP_DOCKER_PULL=0
@@ -236,8 +236,12 @@ requireRootUser() {
 #   None
 # Returns:
 #   LSB_DIST
+#   DIST_VERSION
+#   DIST_VERSION_MAJOR
 #######################################
 LSB_DIST=
+DIST_VERSION=
+DIST_VERSION_MAJOR=
 detectLsbDist() {
     _dist=
     _error_msg="We have checked /etc/os-release and /etc/centos-release files."
@@ -271,27 +275,27 @@ detectLsbDist() {
             ubuntu)
                 _error_msg="$_error_msg\nHowever detected version $_version is less than 12."
                 oIFS="$IFS"; IFS=.; set -- $_version; IFS="$oIFS";
-                [ $1 -ge 12 ] && LSB_DIST=$_dist
+                [ $1 -ge 12 ] && LSB_DIST=$_dist && DIST_VERSION=$_version && DIST_VERSION_MAJOR=$1
                 ;;
             debian)
                 _error_msg="$_error_msg\nHowever detected version $_version is less than 7."
                 oIFS="$IFS"; IFS=.; set -- $_version; IFS="$oIFS";
-                [ $1 -ge 7 ] && LSB_DIST=$_dist
+                [ $1 -ge 7 ] && LSB_DIST=$_dist && DIST_VERSION=$_version && DIST_VERSION_MAJOR=$1
                 ;;
             fedora)
                 _error_msg="$_error_msg\nHowever detected version $_version is less than 21."
                 oIFS="$IFS"; IFS=.; set -- $_version; IFS="$oIFS";
-                [ $1 -ge 21 ] && LSB_DIST=$_dist
+                [ $1 -ge 21 ] && LSB_DIST=$_dist && DIST_VERSION=$_version && DIST_VERSION_MAJOR=$1
                 ;;
             rhel)
                 _error_msg="$_error_msg\nHowever detected version $_version is less than 7."
                 oIFS="$IFS"; IFS=.; set -- $_version; IFS="$oIFS";
-                [ $1 -ge 6 ] && LSB_DIST=$_dist
+                [ $1 -ge 6 ] && LSB_DIST=$_dist && DIST_VERSION=$_version && DIST_VERSION_MAJOR=$1
                 ;;
             centos)
                 _error_msg="$_error_msg\nHowever detected version $_version is less than 6."
                 oIFS="$IFS"; IFS=.; set -- $_version; IFS="$oIFS";
-                [ $1 -ge 6 ] && LSB_DIST=$_dist
+                [ $1 -ge 6 ] && LSB_DIST=$_dist && DIST_VERSION=$_version && DIST_VERSION_MAJOR=$1
                 ;;
             amzn)
                 _error_msg="$_error_msg\nHowever detected version $_version is not one of 2017.03, 2016.09, 2016.03, 2015.09, 2015.03, 2014.09, 2014.03."
@@ -299,17 +303,17 @@ detectLsbDist() {
                 [ "$_version" = "2016.03" ] || [ "$_version" = "2016.09" ] || \
                 [ "$_version" = "2015.03" ] || [ "$_version" = "2015.09" ] || \
                 [ "$_version" = "2014.03" ] || [ "$_version" = "2014.09" ] && \
-                LSB_DIST=$_dist
+                LSB_DIST=$_dist && DIST_VERSION=$_version && DIST_VERSION_MAJOR=$_version
                 ;;
             sles)
                 _error_msg="$_error_msg\nHowever detected version $_version is less than 12."
                 oIFS="$IFS"; IFS=.; set -- $_version; IFS="$oIFS";
-                [ $1 -ge 12 ] && LSB_DIST=$_dist
+                [ $1 -ge 12 ] && LSB_DIST=$_dist && DIST_VERSION=$_version && DIST_VERSION_MAJOR=$1
                 ;;
             ol)
                 _error_msg="$_error_msg\nHowever detected version $_version is less than 6."
                 oIFS="$IFS"; IFS=.; set -- $_version; IFS="$oIFS";
-                [ $1 -ge 6 ] && LSB_DIST=$_dist
+                [ $1 -ge 6 ] && LSB_DIST=$_dist && DIST_VERSION=$_version && DIST_VERSION_MAJOR=$1
                 ;;
             *)
                 _error_msg="$_error_msg\nThat is an unsupported distribution."
@@ -623,42 +627,41 @@ MAX_DOCKER_VERSION_RESULT=
 getMaxDockerVersion() {
     # Max Docker version on CentOS 6 is 1.7.1.
     if [ "$LSB_DIST" = "centos" ]; then
-        if [ "$(cat /etc/centos-release | cut -d" " -f3 | cut -d "." -f1)" = "6" ]; then
+        if [ "$DIST_VERSION_MAJOR" = "6" ]; then
             MAX_DOCKER_VERSION_RESULT="1.7.1"
         fi
     fi
     # Max Docker version on RHEL 6 is 1.7.1.
-    # Max Docker version on RHEL is 1.13.1 as we do not yet support Docker EE.
     if [ "$LSB_DIST" = "rhel" ]; then
-        if [ "$(cat /etc/redhat-release | cut -d" " -f7 | cut -d "." -f1)" = "6" ]; then
+        if [ "$DIST_VERSION_MAJOR" = "6" ]; then
             MAX_DOCKER_VERSION_RESULT="1.7.1"
-        else
-            MAX_DOCKER_VERSION_RESULT="1.13.1"
         fi
     fi
     # Max Docker version on Fedora 21 is 1.9.1.
     if [ "$LSB_DIST" = "fedora" ]; then
-        if [ "$(. /etc/os-release && echo "$VERSION_ID")" = "21" ]; then
+        if [ "$DIST_VERSION_MAJOR" = "21" ]; then
             MAX_DOCKER_VERSION_RESULT="1.9.1"
         fi
     fi
     # Max Docker version on Ubuntu 15.04 is 1.9.1.
     if [ "$LSB_DIST" = "ubuntu" ]; then
-        if [ "$(. /etc/os-release && echo "$VERSION_ID")" = "15.04" ]; then
+        if [ "$DIST_VERSION" = "15.04" ]; then
             MAX_DOCKER_VERSION_RESULT="1.9.1"
         fi
     fi
-    # Max Docker version on Oracle Linux is 1.13.1 as we do not yet support Docker EE.
-    if [ "$LSB_DIST" = "ol" ]; then
-        MAX_DOCKER_VERSION_RESULT="1.13.1"
-    fi
-    # Amazon has their own repo and 1.12.6 is available there for now.
+    # Amazon has their own repo and 12.6.0 and 17.03.1 are available there for now.
     if [ "$LSB_DIST" = "amzn" ]; then
-        MAX_DOCKER_VERSION_RESULT="1.12.6"
+        MAX_DOCKER_VERSION_RESULT="17.03.1"
     fi
     # Max Docker version on SUSE Linux Enterprise Server 12 SP1 is 1.12.6.
     if [ "$LSB_DIST" = "sles" ]; then
         MAX_DOCKER_VERSION_RESULT="1.12.6"
+    fi
+    # Max Docker version on Oracle Linux 6.x seems to be 17.03.1.
+    if [ "$LSB_DIST" = "ol" ]; then
+        if [ "$DIST_VERSION_MAJOR" = "6" ]; then
+            MAX_DOCKER_VERSION_RESULT="17.03.1"
+        fi
     fi
 }
 
@@ -717,39 +720,31 @@ installDocker() {
 _installDocker() {
     if [ "$LSB_DIST" = "amzn" ]; then
         # Docker install script no longer supports Amazon Linux
-        printf "${GREEN}Installing docker from yum repository${NC}\n"
-        yum -y -q install docker-${1}
+        printf "${GREEN}Installing docker from Yum repository${NC}\n"
+        # 1.12.6 and 17.03.1ce are available
+        compareDockerVersions "17.0.0" "${1}"
+        # if docker version is ce
+        if [ "$COMPARE_DOCKER_VERSIONS_RESULT" -eq "-1" ]; then
+            yum -y -q install docker-17.03.1ce
+        else
+            yum -y -q install docker-1.12.6
+        fi
         service docker start || true
         DID_INSTALL_DOCKER=1
         return
-    fi
-
-    if [ "$LSB_DIST" = "sles" ]; then
+    elif [ "$LSB_DIST" = "sles" ]; then
         # Docker install script no longer supports SUSE
         printf "${GREEN}Installing docker from Zypper repository${NC}\n"
-        sudo zypper -n install docker=${1}
+        sudo zypper -n install "docker=${1}"
         service docker start || true
         DID_INSTALL_DOCKER=1
         return
     fi
 
-    printf "${GREEN}Installing docker from https://get.docker.com${NC}\n"
-    _apt_repo_version="${1/-ce/~ce}"
-    _apt_repo_version="${_apt_repo_version/-ee/~ee}"
-    _yum_repo_version="${1/-ce/.ce}"
-    _yum_repo_version="${_yum_repo_version/-ee/.ee}"
-    compareDockerVersions "$1" "1.12.3"
-    if [ "$COMPARE_DOCKER_VERSIONS_RESULT" -eq "1" ]; then
-        _apt_repo_suffix='-0~${lsb_dist}-'
-    else
-        _apt_repo_suffix="-0~"
-    fi
+    _docker_install_url="https://get.replicated.com/docker-install.sh"
+    printf "${GREEN}Installing docker from ${_docker_install_url}${NC}\n"
     getUrlCmd
-    $URLGET_CMD https://get.docker.com | \
-        sed $'s/$sh_c \'sleep 3; apt-get update; apt-get install -y -q docker-engine\'/$sh_c "sleep 3; apt-get update; apt-get install -y -q docker-engine='"$_apt_repo_version$_apt_repo_suffix"'${dist_version}"/' | \
-        sed "s/yum -y -q install docker-engine/yum -y -q install docker-engine-${_yum_repo_version}/" | \
-        sed "s/dnf -y -q install docker-engine/dnf -y -q install docker-engine-${_yum_repo_version}/" \
-        > /tmp/docker_install.sh
+    $URLGET_CMD "$_docker_install_url?docker_version=${1}&lsb_dist=${LSB_DIST}&dist_version=${DIST_VERSION_MAJOR}" > /tmp/docker_install.sh
     # When this script is piped into bash as stdin, apt-get will eat the remaining parts of this script,
     # preventing it from being executed.  So using /dev/null here to change stdin for the docker script.
     sh /tmp/docker_install.sh < /dev/null
@@ -940,6 +935,7 @@ maybeCreateReplicatedUser() {
 
 #######################################
 # Writes the replicated CLI to /usr/local/bin/replicated
+# Wtires the replicated CLI V2 to /usr/local/bin/replicatedctl
 # Globals:
 #   None
 # Arguments:
@@ -951,14 +947,25 @@ installCLIFile() {
   cat > /usr/local/bin/replicated <<-EOF
 #!/bin/sh
 
-# test if stdout is a terminal
-if [ -t 1 ]; then
+# test if stdin is a terminal
+if [ -t 0 ]; then
   sudo docker exec -it ${1} replicated "\$@"
 else
-  sudo docker exec ${1} replicated "\$@"
+  sudo docker exec -i ${1} replicated "\$@"
 fi
 EOF
   chmod a+x /usr/local/bin/replicated
+  cat > /usr/local/bin/replicatedctl <<-EOF
+#!/bin/sh
+
+# test if stdin is a terminal
+if [ -t 0 ]; then
+  sudo docker exec -it ${1} replicatedctl "\$@"
+else
+  sudo docker exec -i ${1} replicatedctl "\$@"
+fi
+EOF
+  chmod a+x /usr/local/bin/replicatedctl
 }
 
 #######################################
@@ -1175,7 +1182,7 @@ shouldUsePublicIp() {
     printf "Enter desired number (0-1): "
     promptTimeout
     if [ "$PROMPT_RESULT" = "1" ]; then
-        prompt_for_public_ip
+        promptForPublicIp
     fi
 }
 
@@ -1610,17 +1617,17 @@ remove_docker_containers() {
 }
 
 pull_docker_images() {
-    docker pull "quay.io/replicated/replicated:stable-2.8.1"
-    docker pull "quay.io/replicated/replicated-ui:stable-2.8.1"
+    docker pull "quay.io/replicated/replicated:stable-2.9.2"
+    docker pull "quay.io/replicated/replicated-ui:stable-2.9.2"
 }
 
 tag_docker_images() {
     printf "Tagging replicated and replicated-ui images\n"
     # older docker versions require -f flag to move a tag from one image to another
-    docker tag "quay.io/replicated/replicated:stable-2.8.1" "quay.io/replicated/replicated:current" 2>/dev/null \
-        || docker tag -f "quay.io/replicated/replicated:stable-2.8.1" "quay.io/replicated/replicated:current"
-    docker tag "quay.io/replicated/replicated-ui:stable-2.8.1" "quay.io/replicated/replicated-ui:current" 2>/dev/null \
-        || docker tag -f "quay.io/replicated/replicated-ui:stable-2.8.1" "quay.io/replicated/replicated-ui:current"
+    docker tag "quay.io/replicated/replicated:stable-2.9.2" "quay.io/replicated/replicated:current" 2>/dev/null \
+        || docker tag -f "quay.io/replicated/replicated:stable-2.9.2" "quay.io/replicated/replicated:current"
+    docker tag "quay.io/replicated/replicated-ui:stable-2.9.2" "quay.io/replicated/replicated-ui:current" 2>/dev/null \
+        || docker tag -f "quay.io/replicated/replicated-ui:stable-2.9.2" "quay.io/replicated/replicated-ui:current"
 }
 
 find_hostname() {
@@ -1687,6 +1694,9 @@ build_replicated_opts() {
     fi
     if [ "$AIRGAP" = "1" ]; then
         REPLICATED_OPTS=$REPLICATED_OPTS" -e AIRGAP=true"
+    fi
+    if [ -n "$RELEASE_SEQUENCE" ]; then
+        REPLICATED_OPTS="$REPLICATED_OPTS -e RELEASE_SEQUENCE=$RELEASE_SEQUENCE"
     fi
 
     find_hostname
@@ -2080,8 +2090,8 @@ install_operator() {
     if [ "$AIRGAP" != "1" ]; then
         getUrlCmd
         echo -e "${GREEN}Installing local operator with command:"
-        echo -e "${URLGET_CMD} https://get.replicated.com${prefix}/operator?replicated_operator_tag=2.8.1${NC}"
-        ${URLGET_CMD} "https://get.replicated.com${prefix}/operator?replicated_operator_tag=2.8.1" > /tmp/operator_install.sh
+        echo -e "${URLGET_CMD} https://get.replicated.com${prefix}/operator?replicated_operator_tag=2.9.2${NC}"
+        ${URLGET_CMD} "https://get.replicated.com${prefix}/operator?replicated_operator_tag=2.9.2" > /tmp/operator_install.sh
     fi
     opts="no-docker daemon-endpoint=[$PRIVATE_ADDRESS]:9879 daemon-token=$DAEMON_TOKEN private-address=$PRIVATE_ADDRESS tags=$OPERATOR_TAGS"
     if [ -n "$PUBLIC_ADDRESS" ]; then
@@ -2213,6 +2223,9 @@ while [ "$1" != "" ]; do
             ;;
         registry-advertise-address|registry_advertise_address)
             REGISTRY_ADVERTISE_ADDRESS="$_value"
+            ;;
+        release-sequence|release_sequence)
+            RELEASE_SEQUENCE="$_value"
             ;;
         skip-pull|skip_pull)
             SKIP_DOCKER_PULL=1

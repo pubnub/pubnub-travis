@@ -9,5 +9,5 @@
     "Channel": "stable",
     "LicenseFileLocation": "/opt/pubnub/travis-platform/travis-trial-license.rli",
     "ImportSettingsFrom": "/opt/pubnub/travis-platform/settings.json",
-    "BypassPreflightChecks": true
+    "BypassPreflightChecks": "${bypass_preflight_checks}"
 }

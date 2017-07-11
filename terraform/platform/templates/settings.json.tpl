@@ -19,11 +19,5 @@
   },
   "librato_token": {
     "value": "${librato_token}"
-  },
-  "etc_travis_path": {
-    "value": "/mnt/travis/etc"
-  },
-  "var_travis_path": {
-    "value": "/mnt/travis/var"
   }
 }

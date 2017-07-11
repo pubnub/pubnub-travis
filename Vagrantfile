@@ -5,9 +5,9 @@ unless Vagrant.has_plugin? "vagrant-triggers"
     raise Vagrant::Errors::VagrantError.new, "Missing required plugin 'vagrant-triggers'"
 end
 
-WORKER_COUNT = ENV.has_key?("TRAVIS_WORKER_COUNT") ? ENV["TRAVIS_WORKER_COUNT"].to_i : 1
-TEMPLATE_VARS = YAML::load(File.open(File.join(File.expand_path(File.dirname(__FILE__)), "template_vars.yml")))
-PLATFORM_IP = "192.168.33.90"
+LOCAL_CONFIG = YAML::load(File.open(File.join(File.expand_path(File.dirname(__FILE__)), "local_config.yml")))
+PLATFORM_IP = LOCAL_CONFIG["vagrant_platform_ip"]
+WORKER_COUNT = LOCAL_CONFIG["vagrant_worker_count"].to_i
 
 Vagrant.configure("2") do |config|
 
@@ -16,6 +16,7 @@ Vagrant.configure("2") do |config|
         run "scripts/render_templates.sh"
     end
 
+    # Platform VM
     config.vm.define "travis-platform" do |platform|
         platform.vm.box = "travis-platform"
         platform.vm.hostname = "travis-platform"
@@ -45,6 +46,7 @@ Vagrant.configure("2") do |config|
         platform.vm.provision "shell", inline: "/opt/pubnub/travis-platform/installer.sh #{platform_install_args}"
     end
 
+    # Worker VM(s)
     (1..WORKER_COUNT).each do |worker_index|
         config.vm.define "travis-worker#{worker_index}" do |worker|
             worker.vm.box = "travis-worker"
@@ -64,7 +66,7 @@ Vagrant.configure("2") do |config|
             worker.vm.synced_folder ".", "/vagrant", disabled: true
 
             # Add platform ip -> host mapping to /etc/hosts
-            worker.vm.provision "shell", inline: "echo \'#{PLATFORM_IP} #{TEMPLATE_VARS["platform_fqdn"]}\' >> /etc/hosts"
+            worker.vm.provision "shell", inline: "echo \'#{PLATFORM_IP} #{LOCAL_CONFIG["platform_fqdn"]}\' >> /etc/hosts"
 
             # Upload required files to /tmp
             worker.vm.provision "file", source: "rendered/worker", destination: "/tmp/rendered"

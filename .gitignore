@@ -1,9 +1,12 @@
 ## Vagrant
 .vagrant
 
-## Packer output
-output/
-packer_cache/
+## Terraform
+.terraform
 
-## Hilrunner
+## Packer Output
+packer_cache/
+*.box
+
+## Hilrunner Output
 rendered/

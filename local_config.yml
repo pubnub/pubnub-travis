@@ -1,20 +1,23 @@
-# Template variable values for local Travis Enterprise build
+# Local Configuration Variables
 
-# Github Settings
+# Consumed by Vagrantfile
+
+vagrant_platform_ip: "192.168.33.90"
+vagrant_worker_count: "1"
+
+
+# Consumed by terraform templates
+
+bypass_preflight_checks: "true"
+
 github_client_id: "fake_client_id"
 github_client_secret: "fake_client_secret"
 
-# Librato Settings
 librato_enabled: "yes"
 librato_email: "librato@example.com"
 librato_token: "librato_token"
 
-# Platform Information
 platform_admin_password: "password"
 platform_fqdn: "travis.vagrant"
-
-# Rabbit MQ Settings
 rabbitmq_password: "password"
-
-# Replicated Log Level
 replicated_log_level: debug
