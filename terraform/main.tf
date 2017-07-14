@@ -179,8 +179,10 @@ output "allow_travis_workers" { value = "${aws_security_group.allow_travis_worke
 
 output "platform_private_ips" { value = [ "${module.platform.private_ips}" ] }
 output "platform_public_ips"  { value = [ "${module.platform.public_ips}" ] }
+output "platform_fqdn"        { value = [ "${module.platform.fqdn}" ] }
 
 output "worker_private_ips" { value = [ "${module.worker.private_ips}" ] }
 output "worker_public_ips"  { value = [ "${module.worker.public_ips}" ] }
+output "worker_fqdn"        { value = [ "${module.worker.fqdn}" ] }
 
 output "private_route53_zone_id" { value = "${aws_route53_zone.private.zone_id}" }
