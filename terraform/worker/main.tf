@@ -109,4 +109,4 @@ resource "aws_route53_record" "worker" {
 
 output "private_ips" { value = [ "${aws_instance.worker.*.private_ip}" ] }
 output "public_ips"  { value = [ "${aws_instance.worker.*.public_ip}" ] }
-output "fqdn"        { value = [ "${aws_route53_record.worker.fqdn}" ] }
+output "fqdns"       { value = [ "${aws_route53_record.worker.*.fqdn}" ] }

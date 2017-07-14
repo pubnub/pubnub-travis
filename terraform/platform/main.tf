@@ -167,4 +167,4 @@ resource "aws_route53_record" "platform" {
 
 output "private_ips" { value = [ "${aws_instance.platform.*.private_ip}" ] }
 output "public_ips"  { value = [ "${aws_instance.platform.*.public_ip}" ] }
-output "fqdn"        { value = [ "${aws_route53_record.platform.fqdn}" ] }
+output "fqdns"       { value = [ "${aws_route53_record.platform.*.fqdn}" ] }
