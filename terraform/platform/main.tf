@@ -89,7 +89,16 @@ resource "aws_instance" "platform" {
         Region      = "${var.region}"
     }
 
-    volume_tags { Role = "${var.role}" }
+    volume_tags {
+        Name        = "${format("%s%d.%s", var.role, count.index + 1, var.env)}"
+        Role        = "${var.role}"
+        CostCenter  = "COGS"
+        Department  = "Engineering"
+        Environment = "${title(var.env)}"
+        Service     = "CICD"
+        Component   = "Build"
+        Region      = "${var.region}"
+    }
 
     # Provision Hostname File
     provisioner "file" {
