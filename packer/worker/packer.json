@@ -127,7 +127,8 @@
                 "sudo mkdir -p /opt/pubnub/travis-worker",
                 "sudo mv /tmp/files/installer.sh /opt/pubnub/travis-worker",
                 "sudo mv /tmp/files/71pndebconf /etc/apt/apt.conf.d",
-                "sudo /opt/pubnub/travis-worker/installer.sh $INSTALL_ARGS"
+                "sudo /opt/pubnub/travis-worker/installer.sh $INSTALL_ARGS",
+                "sudo apt-mark hold travis-worker"
             ],
             "override": {
                 "aws": {

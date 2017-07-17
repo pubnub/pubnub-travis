@@ -95,10 +95,11 @@ resource "aws_instance" "worker" {
     }
 
     # Bootstrap
-    # TODO: apt-get update && apt-get upgrade (pending apt hold on travis worker packer build)
     provisioner "remote-exec" {
         inline = [
             "sudo sed -i.bak \"s/127.0.0.1 localhost/127.0.0.1 localhost ${format("%s%d.%s.%s.%s", var.role, count.index + 1, var.env, var.region, var.sub_domain)}/g\" /etc/hosts",
+            "sudo apt-get update",
+            "sudo apt-get upgrade -y",
             "sudo shutdown -r now"
         ]
     }
