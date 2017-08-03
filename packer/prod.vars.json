@@ -1,0 +1,7 @@
+{
+    "env": "prod",
+    "aws_profile": "production",
+    "aws_region": "us-west-1",
+    "aws_vpc_id": "vpc-65744800",
+    "aws_subnet_id": "subnet-3202006b"
+}

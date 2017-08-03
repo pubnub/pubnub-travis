@@ -3,9 +3,7 @@
 VERSION ?= $(shell git describe)
 
 # Required for AWS AMI build (make *release)
-AWS_REGION ?= us-west-1
-AWS_VPC_ID ?= vpc-b9bca5dc
-AWS_SUBNET_ID ?= subnet-5c28d904
+ENV ?= dev
 SSH_KEY_NAME ?= pubnub-2017-q1
 SSH_KEY_PATH ?= $(HOME)/.ssh/$(SSH_KEY_NAME).key
 
@@ -51,9 +49,7 @@ platform.test worker.test: %.test: common.test
 
 platform.release worker.release: %.release: %.test
 	packer build -only aws \
-		-var aws_region=$(AWS_REGION) \
-		-var aws_vpc_id=$(AWS_VPC_ID) \
-		-var aws_subnet_id=$(AWS_SUBNET_ID) \
+		-var-file=packer/$(ENV).vars.json \
 		-var aws_key_name=$(SSH_KEY_NAME) \
 		-var aws_key_path=$(SSH_KEY_PATH) \
 		-var version=$(VERSION) \

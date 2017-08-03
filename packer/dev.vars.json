@@ -1,0 +1,7 @@
+{
+    "env": "dev",
+    "aws_profile": "engineering",
+    "aws_region": "us-west-1",
+    "aws_vpc_id": "vpc-9b5e37ff",
+    "aws_subnet_id": "subnet-4f114e17"
+}

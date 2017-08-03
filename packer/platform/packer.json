@@ -1,14 +1,14 @@
 {
     "variables": {
-        "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
-        "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+        "role": "travis-platform",
+        "env": "dev",
+        "version": "{{timestamp}}",
+        "aws_profile": "engineering",
         "aws_key_name": "",
         "aws_key_path": "",
         "aws_region": "",
         "aws_subnet_id": "",
-        "aws_vpc_id": "",
-        "role": "travis-platform",
-        "version": "{{timestamp}}"
+        "aws_vpc_id": ""
     },
 
     "builders": [
@@ -49,13 +49,19 @@
             "ami_name": "travis_platform_{{user `version`}}",
             "ami_description": "Travis Platform {{user `version`}}",
 
-            "access_key": "{{user `aws_access_key`}}",
-            "secret_key": "{{user `aws_secret_key`}}",
+            "profile": "{{user `aws_profile`}}",
+            "region": "{{user `aws_region`}}",
+            "vpc_id": "{{user `aws_vpc_id`}}",
+            "subnet_id": "{{user `aws_subnet_id`}}",
 
+            "ssh_keypair_name": "{{user `aws_key_name`}}",
+            "ssh_private_key_file": "{{user `aws_key_path`}}",
+            "ssh_username": "ubuntu",
+
+            "associate_public_ip_address": "true",
             "ebs_optimized": true,
             "enhanced_networking": true,
             "instance_type": "m4.large",
-            "region": "{{user `aws_region`}}",
             "source_ami_filter": {
                 "filters": {
                     "architecture": "x86_64",
@@ -67,12 +73,6 @@
                 "owners": [ "099720109477" ],
                 "most_recent": true
             },
-            "ssh_keypair_name": "{{user `aws_key_name`}}",
-            "ssh_private_key_file": "{{user `aws_key_path`}}",
-            "ssh_username": "ubuntu",
-
-            "subnet_id": "{{user `aws_subnet_id`}}",
-            "vpc_id": "{{user `aws_vpc_id`}}",
 
             "ami_block_device_mappings": [{
                 "device_name": "/dev/sda1",
@@ -101,9 +101,7 @@
                 "Name": "{{user `role`}}_{{user `version`}}",
                 "Role": "{{user `role`}}",
                 "Version": "{{user `version`}}",
-                "Dev": "true",
-                "Staging": "false",
-                "Prod": "false"
+                "Env": "{{user `env`}}"
             }
         }
     ],

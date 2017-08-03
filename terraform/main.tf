@@ -55,8 +55,8 @@ data "aws_ami" "platform" {
 
     # Only allow AMIs tagged for this environment
     filter {
-        name = "tag:${title(var.env)}"
-        values = [ "true" ]
+        name = "tag:Env"
+        values = "${var.env}"
     }
 }
 
@@ -76,8 +76,8 @@ data "aws_ami" "worker" {
 
     # Only allow AMIs tagged for this environment
     filter {
-        name = "tag:${title(var.env)}"
-        values = [ "true" ]
+        name = "tag:Env"
+        values = "${var.env}"
     }
 }
 
