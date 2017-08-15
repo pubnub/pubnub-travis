@@ -24,6 +24,7 @@ variable "platform_fqdn"                 { }
 variable "platform_github_client_id"     { }
 variable "platform_github_client_secret" { }
 variable "platform_instance_type"        { }
+variable "platform_eip"                  { }
 variable "platform_librato_enabled"      { default = "false" }
 variable "platform_librato_email"        { default = "" }
 variable "platform_librato_token"        { default = "" }
@@ -113,6 +114,7 @@ module "platform" {
     count           = "${var.platform_count}"
     env             = "${var.env}"
     instance_type   = "${var.platform_instance_type}"
+    eip             = "${var.platform_eip}"
     region          = "${data.aws_region.current.name}"
     route53_zone_id = "${var.route53_zone_id}"
     ssh_key_name    = "${var.ssh_key_name}"

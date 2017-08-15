@@ -11,6 +11,7 @@ variable "ami_id"          { }
 variable "count"           { }
 variable "env"             { }
 variable "instance_type"   { }
+variable "eip"             { }
 variable "region"          { }
 variable "role"            { default = "travis-platform" }
 variable "route53_zone_id" { }
@@ -35,6 +36,10 @@ variable "replicated_log_level" { default = "debug" }
 
 
 # ----- Data Sources
+
+data "aws_eip" "platform" {
+    public_ip = "${var.eip}"
+}
 
 data "template_file" "replicated" {
     template = "${file("${path.module}/templates/replicated.conf.tpl")}"
@@ -62,6 +67,12 @@ data "template_file" "settings" {
 
 
 # ----- Resources
+
+resource "aws_eip_association" "platform" {
+    count = "${var.count}"
+    instance_id = "${aws_instance.platform.id}"
+    allocation_id = "${data.aws_eip.platform.id}"
+}
 
 resource "aws_instance" "platform" {
     ami                         = "${var.ami_id}"
@@ -168,12 +179,12 @@ resource "aws_route53_record" "platform" {
     name = "${format("${var.role}%d", count.index + 1)}"
     type = "A"
     ttl = "300"
-    records = [ "${aws_instance.platform.*.public_ip[count.index]}" ]
+    records = [ "${data.aws_eip.platform.public_ip}" ]
 }
 
 
 # ----- Outputs
 
 output "private_ips" { value = [ "${aws_instance.platform.*.private_ip}" ] }
-output "public_ips"  { value = [ "${aws_instance.platform.*.public_ip}" ] }
+output "public_ips"  { value = [ "${data.aws_eip.platform.public_ip}" ] }
 output "fqdns"       { value = [ "${aws_route53_record.platform.*.fqdn}" ] }
