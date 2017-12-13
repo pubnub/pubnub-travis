@@ -14,16 +14,16 @@ WORKER_SRC = $(shell find packer/worker -type f)
 
 # Outputs
 PLATFORM_BOX = travis-platform_virtualbox_$(VERSION).box
-WORKER_BOX = travis-worker_virtualbox_$(VERSION).box
-
+WORKER_PRECISE_BOX = travis-worker_precise_virtualbox_$(VERSION).box
+WORKER_TRUSTY_BOX = travis-worker_trusty_virtualbox_$(VERSION).box
 
 # ----- Run commands for both platform and worker
 
-all: 		platform 			worker
-install: 	platform.install 	worker.install
-test: 		platform.test 		worker.test
-release:	platform.release	worker.release
-clean:		platform.clean		worker.clean
+all: 		platform 			worker/precise			worker/trusty
+install: 	platform.install 	worker/precise.install	worker/trusty.install
+test: 		platform.test 		worker/precise.test		worker/trusty.test
+release:	platform.release	worker/precise.release	worker/trusty.release
+clean:		platform.clean		worker/precise.clean	worker/trusty.clean
 
 .PHONY: all install test release clean
 
@@ -31,39 +31,52 @@ clean:		platform.clean		worker.clean
 # ----- Run commands on platform or worker individually
 
 platform: $(PLATFORM_BOX)
-worker: $(WORKER_BOX)
-.PHONY: platform worker
+worker/precise: $(WORKER_PRECISE_BOX)
+worker/trusty: $(WORKER_TRUSTY_BOX)
+.PHONY: platform worker/precise worker/trusty
 
-platform.install worker.install: %.install:
+platform.install worker/precise.install worker/trusty.install: %.install:
 	@./scripts/vagrant_install.sh $*
-.PHONY: platform.install worker.install
+.PHONY: platform.install worker/precise.install worker/trusty.install
 
-common.test:
+common.terraform.test:
 	terraform validate terraform
-.PHONY: common.test
+.PHONY: common.terraform.test
 
-platform.test worker.test: %.test: common.test
+platform.terraform.test worker.terraform.test: %.terraform.test: common.terraform.test
 	terraform validate terraform/$*
-	packer validate packer/$*/packer.json
-.PHONY: platform.test worker.test
+.PHONY: platform.terraform.test worker.terraform.test
 
-platform.release worker.release: %.release: %.test
+platform.packer.test worker/precise.packer.test worker/trusty.packer.test: %.packer.test:
+	packer validate packer/$*/packer.json
+.PHONY: platform.packer.test worker/precise.packer.test worker/trusty.packer.test
+
+platform.test: platform.terraform.test platform.packer.test
+.PHONY: platform.test
+
+worker/precise.test worker/trusty.test: %.test: worker.terraform.test %.packer.test
+.PHONY: worker/precise.test worker/trusty.test
+
+platform.release worker/precise.release worker/trusty.release: %.release: %.test
 	packer build -only aws \
 		-var-file=packer/$(ENV).vars.json \
 		-var aws_key_name=$(SSH_KEY_NAME) \
 		-var aws_key_path=$(SSH_KEY_PATH) \
 		-var version=$(VERSION) \
 		packer/$*/packer.json
-.PHONY: platform.release worker.release
+.PHONY: platform.release worker/precise.release worker/trusty.release
 
-platform.clean worker.clean: %.clean:
+platform.clean worker/precise.clean worker/trusty.clean: %.clean
 	@rm -f travis-$*_virtualbox_*.box
-.PHONY: platform.clean worker.clean
+.PHONY: platform.clean worker/precise.clean worker/trusty.clean
 
 
 # Non-PHONY rules
 $(PLATFORM_BOX): $(COMMON_SRC) $(PLATFORM_SRC)
 	packer build -only vagrant -var version=$(VERSION) packer/platform/packer.json
 
-$(WORKER_BOX): $(COMMON_SRC) $(WORKER_SRC)
-	packer build -only vagrant -var version=$(VERSION) packer/worker/packer.json
+$(WORKER_PRECISE_BOX): $(COMMON_SRC) $(WORKER_SRC)
+	packer build -only vagrant -var version=$(VERSION) packer/worker/precise/packer.json
+
+$(WORKER_TRUSTY_BOX): $(COMMON_SRC) $(WORKER_SRC)
+	packer build -only vagrant -var version=$(VERSION) packer/worker/trusty/packer.json

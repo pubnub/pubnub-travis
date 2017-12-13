@@ -31,8 +31,8 @@ variable "platform_librato_token"        { default = "" }
 variable "platform_replicated_log_level" { default = "debug" }
 variable "platform_sg_ids"               { type = "list" }
 
-variable "worker_count"         { }
-variable "worker_instance_type" { }
+variable "worker_count"         { type = "map" }
+variable "worker_instance_type" { type = "map" }
 variable "worker_sg_ids"        { type = "list" }
 
 
@@ -61,7 +61,7 @@ data "aws_ami" "platform" {
     }
 }
 
-data "aws_ami" "worker" {
+data "aws_ami" "worker_precise" {
     most_recent = true
     owners      = [ "self" ]
 
@@ -73,6 +73,37 @@ data "aws_ami" "worker" {
     filter {
         name   = "tag:Role"
         values = [ "travis-worker" ]
+    }
+
+    filter {
+        name   = "tag:Dist"
+        values = [ "precise" ]
+    }
+
+    # Only allow AMIs tagged for this environment
+    filter {
+        name = "tag:Env"
+        values = [ "${var.env}" ]
+    }
+}
+
+data "aws_ami" "worker_trusty" {
+    most_recent = true
+    owners      = [ "self" ]
+
+    filter {
+        name   = "state"
+        values = [ "available" ]
+    }
+
+    filter {
+        name   = "tag:Role"
+        values = [ "travis-worker" ]
+    }
+
+    filter {
+        name   = "tag:Dist"
+        values = [ "trusty" ]
     }
 
     # Only allow AMIs tagged for this environment
@@ -93,15 +124,26 @@ resource "aws_security_group" "allow_travis_workers" {
     tags { Name = "allow_travis_workers" }
 }
 
-resource "aws_security_group_rule" "allow_travis_workers" {
-    count = "${var.worker_count > 0 ? 1 : 0}"
+resource "aws_security_group_rule" "allow_travis_workers_precise" {
+    count = "${lookup(var.worker_count, "precise", 0) > 0 ? 1 : 0}"
     type              = "ingress"
     security_group_id = "${aws_security_group.allow_travis_workers.id}"
 
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = [ "${formatlist("%s/32", module.worker.private_ips)}" ]
+    cidr_blocks = [ "${formatlist("%s/32", module.worker_precise.private_ips)}" ]
+}
+
+resource "aws_security_group_rule" "allow_travis_workers_trusty" {
+    count = "${lookup(var.worker_count, "trusty", 0) > 0 ? 1 : 0}"
+    type              = "ingress"
+    security_group_id = "${aws_security_group.allow_travis_workers.id}"
+
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [ "${formatlist("%s/32", module.worker_trusty.private_ips)}" ]
 }
 
 
@@ -137,13 +179,35 @@ module "platform" {
     replicated_log_level = "${var.platform_replicated_log_level}"
 }
 
-module "worker" {
+module "worker_precise" {
     source = "./worker"
 
-    ami_id          = "${data.aws_ami.worker.id}"
-    count           = "${var.worker_count}"
+    ami_id          = "${data.aws_ami.worker_precise.id}"
+    count           = "${lookup(var.worker_count, "precise", 0)}"
+    dist            = "precise"
     env             = "${var.env}"
-    instance_type   = "${var.worker_instance_type}"
+    instance_type   = "${lookup(var.worker_instance_type, "precise")}"
+    ssh_key_name    = "${var.ssh_key_name}"
+    ssh_key_path    = "${var.ssh_key_path}"
+    region          = "${data.aws_region.current.name}"
+    route53_zone_id = "${var.route53_zone_id}"
+    sg_ids          = [ "${var.worker_sg_ids}" ]
+    sub_domain      = "${var.sub_domain}"
+    subnet_id       = "${var.subnet_id}"
+
+    # Template Variables
+    platform_fqdn     = "${var.platform_fqdn}"
+    rabbitmq_password = "${var.rabbitmq_password}"
+}
+
+module "worker_trusty" {
+    source = "./worker"
+
+    ami_id          = "${data.aws_ami.worker_trusty.id}"
+    count           = "${lookup(var.worker_count, "trusty", 0)}"
+    env             = "${var.env}"
+    dist            = "trusty"
+    instance_type   = "${lookup(var.worker_instance_type, "trusty")}"
     ssh_key_name    = "${var.ssh_key_name}"
     ssh_key_path    = "${var.ssh_key_path}"
     region          = "${data.aws_region.current.name}"
@@ -183,8 +247,23 @@ output "platform_private_ips" { value = [ "${module.platform.private_ips}" ] }
 output "platform_public_ips"  { value = [ "${module.platform.public_ips}" ] }
 output "platform_fqdns"       { value = [ "${module.platform.fqdns}" ] }
 
-output "worker_private_ips" { value = [ "${module.worker.private_ips}" ] }
-output "worker_public_ips"  { value = [ "${module.worker.public_ips}" ] }
-output "worker_fqdns"       { value = [ "${module.worker.fqdns}" ] }
+output "worker_private_ips" {
+    value = {
+        precise = [ "${module.worker_precise.private_ips}" ]
+        trusty  = [ "${module.worker_trusty.private_ips}" ]
+    }
+}
+output "worker_public_ips" {
+    value = {
+        precise = [ "${module.worker_precise.public_ips}" ]
+        trusty  = [ "${module.worker_trusty.public_ips}" ]
+    }
+}
+output "worker_fqdns" {
+    value = {
+        precise = [ "${module.worker_precise.fqdns}" ]
+        trusty  = [ "${module.worker_trusty.fqdns}" ]
+    }
+}
 
 output "private_route53_zone_id" { value = "${aws_route53_zone.private.zone_id}" }

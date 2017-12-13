@@ -1,0 +1,150 @@
+{
+    "variables": {
+        "role": "travis-worker",
+        "env": "dev",
+        "version": "{{timestamp}}",
+        "aws_profile": "engineering",
+        "aws_key_name": "",
+        "aws_key_path": "",
+        "aws_region": "",
+        "aws_subnet_id": "",
+        "aws_vpc_id": ""
+    },
+
+    "builders": [
+        {
+            "type": "virtualbox-vagrant",
+            "name": "vagrant",
+
+            "box": {
+                "type": "catalog",
+                "name": "ubuntu/trusty64",
+                "version": "20170512.0.0"
+            },
+
+            "ssh_username": "vagrant",
+            "ssh_password": "vagrant",
+
+            "http_directory": "{{template_dir}}/../../http",
+            "output_directory": "{{template_dir}}/../output",
+
+            "shutdown_command": "echo vagrant | sudo -S shutdown -P now",
+
+            "boot_command": [
+                "<esc><esc><enter><wait>",
+                "/install/vmlinuz noapic ",
+                "preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg ",
+                "debian-installer=en_US auto locale=en_US kbd-chooser/method=us ",
+                "hostname=travis-worker.precise ",
+                "fb=false debconf/frontend=noninteractive ",
+                "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=USA ",
+                "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
+                "initrd=/install/initrd.gz -- <enter>"
+            ]
+        },
+        {
+            "type": "amazon-ebs",
+            "name": "aws",
+
+            "ami_name": "travis_worker_trusty_{{user `version`}}",
+            "ami_description": "Travis Worker - Trusty {{user `version`}}",
+
+            "profile": "{{user `aws_profile`}}",
+            "region": "{{user `aws_region`}}",
+            "vpc_id": "{{user `aws_vpc_id`}}",
+            "subnet_id": "{{user `aws_subnet_id`}}",
+
+            "ssh_keypair_name": "{{user `aws_key_name`}}",
+            "ssh_private_key_file": "{{user `aws_key_path`}}",
+            "ssh_username": "ubuntu",
+
+            "associate_public_ip_address": "true",
+            "ebs_optimized": true,
+            "enhanced_networking": true,
+            "instance_type": "c3.2xlarge",
+            "source_ami_filter": {
+                "filters": {
+                    "architecture": "x86_64",
+                    "image-type": "machine",
+                    "root-device-type": "ebs",
+                    "virtualization-type": "hvm",
+                    "name": "*ubuntu-trusty-14.04-amd64-server-*"
+                },
+                "owners": [ "099720109477" ],
+                "most_recent": true
+            },
+
+            "ami_block_device_mappings": [{
+                "device_name": "/dev/sda1",
+                "volume_size": "75",
+                "volume_type": "gp2",
+                "delete_on_termination": true
+            }],
+
+            "launch_block_device_mappings": [{
+                "device_name": "/dev/sda1",
+                "volume_size": "75",
+                "volume_type": "gp2",
+                "delete_on_termination": true
+            }],
+
+            "run_tags": {
+                "Name": "Packer Builder",
+                "Role": "{{user `role`}}",
+                "Dist": "trusty"
+            },
+            "run_volume_tags": {
+                "Name": "Packer Builder",
+                "Role": "{{user `role`}}",
+                "Dist": "trusty"
+            },
+
+            "tags": {
+                "Name": "{{user `role`}}_{{user `version`}}",
+                "Role": "{{user `role`}}",
+                "Dist": "trusty",
+                "Version": "{{user `version`}}",
+                "Env": "{{user `env`}}"
+            }
+        }
+    ],
+
+    "provisioners": [
+        {
+            "type": "file",
+            "source": "{{template_dir}}/files",
+            "destination": "/tmp"
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo apt-get update",
+                "sudo apt-get upgrade -y"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo mkdir -p /opt/pubnub/travis-worker",
+                "sudo mv /tmp/files/installer.sh /opt/pubnub/travis-worker",
+                "sudo mv /tmp/files/71pndebconf /etc/apt/apt.conf.d",
+                "sudo /opt/pubnub/travis-worker/installer.sh $INSTALL_ARGS",
+                "sudo apt-mark hold travis-worker"
+            ],
+            "override": {
+                "aws": {
+                    "environment_vars": [ "INSTALL_ARGS=--aws=true" ]
+                }
+            }
+        }
+    ],
+
+    "post-processors": [
+        {
+            "type": "vagrant",
+            "only": [ "vagrant" ],
+            "keep_input_artifact": false,
+            "output": "{{user `role`}}_trusty_{{.Provider}}_{{user `version`}}.box"
+        }
+    ]
+}

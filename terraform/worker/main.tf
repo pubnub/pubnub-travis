@@ -9,6 +9,7 @@ terraform { required_version = "= 0.9.6" }
 
 variable "ami_id"            { }
 variable "count"             { }
+variable "dist"              { }
 variable "env"               { }
 variable "instance_type"     { }
 variable "platform_fqdn"     { }
@@ -53,8 +54,9 @@ resource "aws_instance" "worker" {
     }
 
     tags {
-        Name        = "${format("%s%d.%s", var.role, count.index + 1, var.env)}"
+        Name        = "${format("%s%d.%s.%s", var.role, count.index + 1, var.dist, var.env)}"
         Role        = "${var.role}"
+        Dist        = "${var.dist}"
         CostCenter  = "COGS"
         Department  = "Engineering"
         Environment = "${title(var.env)}"
@@ -64,8 +66,9 @@ resource "aws_instance" "worker" {
     }
 
     volume_tags {
-        Name        = "${format("%s%d.%s", var.role, count.index + 1, var.env)}"
+        Name        = "${format("%s%d.%s.%s", var.role, count.index + 1, var.dist, var.env)}"
         Role        = "${var.role}"
+        Dist        = "${var.dist}"
         CostCenter  = "COGS"
         Department  = "Engineering"
         Environment = "${title(var.env)}"
@@ -74,9 +77,21 @@ resource "aws_instance" "worker" {
         Region      = "${var.region}"
     }
 
+    ephemeral_block_device {
+        device_name = "/dev/sdb"
+        no_device = "true"
+        virtual_name = "ephemeral0"
+    }
+
+    ephemeral_block_device {
+        device_name = "/dev/sdc"
+        no_device = "true"
+        virtual_name = "ephemeral1"
+    }
+
     # Provision Hostname File
     provisioner "file" {
-        content = "${format("%s%d.%s.%s.%s", var.role, count.index + 1, var.env, var.region, var.sub_domain)}"
+        content = "${format("%s%d.%s.%s.%s.%s", var.role, count.index + 1, var.dist, var.env, var.region, var.sub_domain)}"
         destination = "/tmp/hostname"
     }
 
@@ -97,7 +112,7 @@ resource "aws_instance" "worker" {
     # Bootstrap
     provisioner "remote-exec" {
         inline = [
-            "sudo sed -i.bak \"s/127.0.0.1 localhost/127.0.0.1 localhost ${format("%s%d.%s.%s.%s", var.role, count.index + 1, var.env, var.region, var.sub_domain)}/g\" /etc/hosts",
+            "sudo sed -i.bak \"s/127.0.0.1 localhost/127.0.0.1 localhost ${format("%s%d.%s.%s.%s.%s", var.role, count.index + 1, var.dist, var.env, var.region, var.sub_domain)}/g\" /etc/hosts",
             "sudo apt-get update",
             "sudo apt-get upgrade -y",
             "sudo shutdown -r now"
@@ -108,7 +123,7 @@ resource "aws_instance" "worker" {
 resource "aws_route53_record" "worker" {
     count = "${var.count}"
     zone_id = "${var.route53_zone_id}"
-    name = "${format("${var.role}%d", count.index + 1)}"
+    name = "${format("%s%d.%s", var.role, count.index + 1, var.dist)}"
     type = "A"
     ttl = "300"
     records = [ "${aws_instance.worker.*.public_ip[count.index]}" ]

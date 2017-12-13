@@ -16,29 +16,33 @@ Options:
 
 Targets:
     platform
-    worker
+    worker/precise
+    worker/trusty
 HERE
 }
 
 USAGE="Usage: vagrant_install.sh [ platform | worker ]"
 
 RUN_PLATFORM=false
-RUN_WORKER=false
+RUN_WORKER_PRECISE=false
+RUN_WORKER_TRUSTY=false
 SKIP_MISSING=false
 
 while [ "$#" -gt 0 ]; do
     case $1 in
         platform) RUN_PLATFORM=true; shift;;
-        worker) RUN_WORKER=true; shift;;
+        worker/precise) RUN_WORKER_PRECISE=true; shift;;
+        worker/trusty) RUN_WORKER_TRUSTY=true; shift;;
         -s|--skip-missing) SKIP_MISSING=true; shift;;
         -h|--help) usage; exit 0;;
         *) usage $1; exit 1;;
     esac
 done
 
-if [ "$RUN_PLATFORM" = "false" ] && [ "$RUN_WORKER" = "false" ]; then
+if [ "$RUN_PLATFORM" = "false" ] && [ "$RUN_WORKER_PRECISE" = "false" ] && [ "$RUN_WORKER_TRUSTY" = "false" ]; then
     RUN_PLATFORM=true
-    RUN_WORKER=true
+    RUN_WORKER_PRECISE=true
+    RUN_WORKER_TRUSTY=true
 fi
 
 run_install() {
@@ -60,4 +64,5 @@ run_install() {
 }
 
 [ "$RUN_PLATFORM" = "true" ] && run_install travis-platform
-[ "$RUN_WORKER" = "true" ] && run_install travis-worker
+[ "$RUN_WORKER_PRECISE" = "true" ] && run_install travis-worker_precise
+[ "$RUN_WORKER_TRUSTY" = "true" ] && run_install travis_worker_trusty

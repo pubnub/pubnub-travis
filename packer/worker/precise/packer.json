@@ -25,8 +25,8 @@
             "ssh_username": "vagrant",
             "ssh_password": "vagrant",
 
-            "http_directory": "{{template_dir}}/../http",
-            "output_directory": "{{template_dir}}/output",
+            "http_directory": "{{template_dir}}/../../http",
+            "output_directory": "{{template_dir}}/../output",
 
             "shutdown_command": "echo vagrant | sudo -S shutdown -P now",
 
@@ -35,7 +35,7 @@
                 "/install/vmlinuz noapic ",
                 "preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg ",
                 "debian-installer=en_US auto locale=en_US kbd-chooser/method=us ",
-                "hostname=travis-worker ",
+                "hostname=travis-worker.precise ",
                 "fb=false debconf/frontend=noninteractive ",
                 "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=USA ",
                 "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
@@ -46,8 +46,8 @@
             "type": "amazon-ebs",
             "name": "aws",
 
-            "ami_name": "travis_worker_{{user `version`}}",
-            "ami_description": "Travis Worker {{user `version`}}",
+            "ami_name": "travis_worker_precise_{{user `version`}}",
+            "ami_description": "Travis Worker - Precise {{user `version`}}",
 
             "profile": "{{user `aws_profile`}}",
             "region": "{{user `aws_region`}}",
@@ -90,16 +90,19 @@
 
             "run_tags": {
                 "Name": "Packer Builder",
-                "Role": "{{user `role`}}"
+                "Role": "{{user `role`}}",
+                "Dist": "precise"
             },
             "run_volume_tags": {
                 "Name": "Packer Builder",
-                "Role": "{{user `role`}}"
+                "Role": "{{user `role`}}",
+                "Dist": "precise"
             },
 
             "tags": {
                 "Name": "{{user `role`}}_{{user `version`}}",
                 "Role": "{{user `role`}}",
+                "Dist": "precise",
                 "Version": "{{user `version`}}",
                 "Env": "{{user `env`}}"
             }
@@ -141,7 +144,7 @@
             "type": "vagrant",
             "only": [ "vagrant" ],
             "keep_input_artifact": false,
-            "output": "{{user `role`}}_{{.Provider}}_{{user `version`}}.box"
+            "output": "{{user `role`}}_precise_{{.Provider}}_{{user `version`}}.box"
         }
     ]
 }
