@@ -77,17 +77,17 @@ resource "aws_instance" "worker" {
         Region      = "${var.region}"
     }
 
-    ephemeral_block_device {
-        device_name = "/dev/sdb"
-        no_device = "true"
-        virtual_name = "ephemeral0"
-    }
-
-    ephemeral_block_device {
-        device_name = "/dev/sdc"
-        no_device = "true"
-        virtual_name = "ephemeral1"
-    }
+    // ephemeral_block_device {
+    //     device_name = "/dev/sdb"
+    //     no_device = "true"
+    //     virtual_name = "ephemeral0"
+    // }
+    //
+    // ephemeral_block_device {
+    //     device_name = "/dev/sdc"
+    //     no_device = "true"
+    //     virtual_name = "ephemeral1"
+    // }
 
     # Provision Hostname File
     provisioner "file" {
