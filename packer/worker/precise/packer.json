@@ -60,7 +60,7 @@
 
             "associate_public_ip_address": "true",
             "ebs_optimized": true,
-            "enhanced_networking": true,
+            "ena_support": true,
             "instance_type": "m4.large",
             "source_ami_filter": {
                 "filters": {
