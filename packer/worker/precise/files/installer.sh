@@ -58,7 +58,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [[ ! -n $DOCKER_VERSION ]]; then
-  export DOCKER_VERSION="1.6.2"
+  export DOCKER_VERSION="17.06.2~ce-0~ubuntu"
 else
   export DOCKER_VERSION
 fi
@@ -97,24 +97,34 @@ root_check
 ## Install and setup Docker
 docker_setup() {
 
-  DOCKER_APT_FILE="/etc/apt/sources.list.d/docker.list"
-  DOCKER_CONFIG_FILE="/etc/default/docker"
+  : "${DOCKER_APT_FILE:=/etc/apt/sources.list.d/docker.list}"
+  : "${DOCKER_CONFIG_FILE:=/etc/default/docker}"
+
+  apt-get install -y apt-transport-https \
+    ca-certificates \
+    curl \
+    software-properties-common
 
   if [[ ! -f $DOCKER_APT_FILE ]]; then
-    wget -qO- https://get.docker.io/gpg | apt-key add -
-    echo deb https://get.docker.io/ubuntu docker main > $DOCKER_APT_FILE
-    apt-get update
-    apt-get install -y linux-image-extra-`uname -r` lxc lxc-docker-$DOCKER_VERSION
+    curl -sSL 'https://download.docker.com/linux/ubuntu/gpg' | apt-key add -
+    echo 'deb [arch=amd64] https://download.docker.com/linux/ubuntu trusty stable' >"$DOCKER_APT_FILE"
+  fi
 
+  apt-get update
+
+  if ! docker version &>/dev/null; then
+    apt-get install -y \
+      "linux-image-extra-$(uname -r)" \
+      docker-ce=$DOCKER_VERSION
   fi
 
   if [[ $AWS == true ]]; then
-    DOCKER_MOUNT_POINT="--graph=/mnt/docker"
+    DOCKER_MOUNT_POINT="--data-root=/mnt/docker"
   fi
 
   # use LXC, and disable inter-container communication
   if [[ ! $(grep icc $DOCKER_CONFIG_FILE) ]]; then
-    echo 'DOCKER_OPTS="-H tcp://0.0.0.0:4243 --storage-driver=aufs --icc=false --exec-driver=lxc '$DOCKER_MOUNT_POINT'"' >> $DOCKER_CONFIG_FILE
+    echo 'DOCKER_OPTS="-H tcp://0.0.0.0:4243 -H unix:///var/run/docker.sock --storage-driver=aufs --icc=false '$DOCKER_MOUNT_POINT'"' >> $DOCKER_CONFIG_FILE
     service docker restart
     sleep 2 # a short pause to ensure the docker daemon starts
   fi
@@ -133,17 +143,17 @@ docker_populate_images() {
   tag=latest
   for lang in $langs; do
     $DOCKER_CMD pull quay.io/travisci/travis-$lang:$tag
-    $DOCKER_CMD tag -f quay.io/travisci/travis-$lang:$tag travis:$lang
+    $DOCKER_CMD tag quay.io/travisci/travis-$lang:$tag travis:$lang
   done
 
   # tag travis:ruby as travis:default
-  $DOCKER_CMD tag -f travis:ruby travis:default
+  $DOCKER_CMD tag travis:ruby travis:default
 
   for lang_map in "${lang_mappings[@]}"; do
     map=$(echo $lang_map|cut -d':' -f 1)
     lang=$(echo $lang_map|cut -d':' -f 2)
 
-    $DOCKER_CMD tag -f quay.io/travisci/travis-$lang:$tag travis:$map
+    $DOCKER_CMD tag quay.io/travisci/travis-$lang:$tag travis:$map
   done
 }
 if [[ ! -n $SKIP_DOCKER_POPULATE ]]; then
@@ -167,10 +177,13 @@ install_travis_worker() {
 install_travis_worker
 ##
 
-## Configure travis-worker
+# Configure travis-worker
 configure_travis_worker() {
   TRAVIS_ENTERPRISE_CONFIG="/etc/default/travis-enterprise"
   TRAVIS_WORKER_CONFIG="/etc/default/travis-worker"
+
+  # Trusty images don't seem to like SSH
+  echo "export TRAVIS_WORKER_DOCKER_NATIVE=\"true\"" >> $TRAVIS_WORKER_CONFIG
 
   if [[ -n $TRAVIS_ENTERPRISE_HOST ]]; then
     sed -i \
@@ -186,7 +199,11 @@ configure_travis_worker() {
 
   if [[ -n $TRAVIS_ENTERPRISE_BUILD_ENDPOINT ]]; then
     sed -i \
-      "s/export TRAVIS_ENTERPRISE_BUILD_ENDPOINT=\"__build__\"/export TRAVIS_ENTERPRISE_BUILD_ENDPOINT=\"$TRAVIS_ENTERPRISE_BUILD_ENDPOINT\"/" \
+      "s/# export TRAVIS_ENTERPRISE_BUILD_ENDPOINT=\"__build__\"/export TRAVIS_ENTERPRISE_BUILD_ENDPOINT=\"$TRAVIS_ENTERPRISE_BUILD_ENDPOINT\"/" \
+      $TRAVIS_ENTERPRISE_CONFIG
+  else
+    sed -i \
+      "s/# export TRAVIS_ENTERPRISE_BUILD_ENDPOINT=\"__build__\"/export TRAVIS_ENTERPRISE_BUILD_ENDPOINT=\"__build__\"/" \
       $TRAVIS_ENTERPRISE_CONFIG
   fi
 
